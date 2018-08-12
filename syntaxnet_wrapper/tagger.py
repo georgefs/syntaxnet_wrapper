@@ -23,13 +23,15 @@ from syntaxnet import task_spec_pb2
 import functools
 from syntaxnet_wrapper.core import SyntaxNetWrapper, RewriteContext
 
-@functools.lru_cache(maxsize=128)
+# @functools.lru_cache(maxsize=128)
 def get_tagger(lang):
-    return Parser(lang)
+    return Tagger(lang)
 
-class Parser(SyntaxNetWrapper):
+class Tagger(SyntaxNetWrapper):
     def __init__(self, lang):
-        super(Parser, self).__init__(self, lang)
+        super(Tagger, self).__init__(lang)
+        self.build()
+        
 
     def build(self):
 
@@ -52,7 +54,7 @@ class Parser(SyntaxNetWrapper):
 
         sess = tf.Session()
 
-        task_context = RewriteContext(context_path)
+        task_context = RewriteContext(context_path, resource_dir)
         feature_sizes, domain_sizes, embedding_dims, num_actions = sess.run(
             gen_parser_ops.feature_size(task_context=task_context, arg_prefix=tagger_arg_prefix))
         hidden_layer_sizes = map(int, tagger_hidden_layer_sizes.split(','))

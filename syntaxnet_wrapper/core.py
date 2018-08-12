@@ -22,7 +22,7 @@ from syntaxnet.ops import gen_parser_ops
 from syntaxnet import task_spec_pb2
 
 from cStringIO import StringIO
-
+import six
 
 tensorflow_models_path = "/opt/tensorflow/models"
 syntaxnet_models_path = os.path.join(tensorflow_models_path, "syntaxnet")
@@ -74,7 +74,7 @@ language_code_to_model_name = {
 }
 
 
-def RewriteContext(task_context):
+def RewriteContext(task_context, resource_dir):
     context = task_spec_pb2.TaskSpec()
     with gfile.FastGFile(task_context) as fin:
         text_format.Merge(fin.read(), context)
@@ -103,17 +103,16 @@ def get_model_files(model_name):
         model_path = syntaxnet_models_path
         context_path = parsey_mcparseface_path
     elif model_name == 'ZHTokenizer':
-        model_path = os.path.join(syntaxnet_package_path, 'Chinese')
-        context_path = os.path.join(syntaxnet_package_path, 'context-tokenize-zh.pbtxt')
+        model_path = os.path.join(parsey_universal_path, 'Chinese')
+        context_path = os.path.join(parsey_universal_path, 'context-tokenize-zh.pbtxt')
     else:
-        model_path = os.path.join(syntaxnet_package_path, model_name)
-        context_path = os.path.join(syntaxnet_package_path, 'context.pbtxt')
+        model_path = os.path.join(parsey_universal_path, model_name)
+        context_path = os.path.join(parsey_universal_path, 'context.pbtxt')
 
     return model_path, context_path
 
 
 class SyntaxNetWrapper(object):
-
     def __init__(self, lang):
 
         self.lang = lang
@@ -122,17 +121,10 @@ class SyntaxNetWrapper(object):
         self.model_path, self.context_path = get_model_files(model_name)
 
     def query(self, text):
-        default = sys.stdout
-        sys.stdout = cStringIO()
-        sys.stdin.write(text)
-        sys.stdin.flush()
-
         tf_eval_epochs, tf_eval_metrics, tf_documents = self.sess.run([
             self.model.evaluation['epochs'],
             self.model.evaluation['eval_metrics'],
             self.model.evaluation['documents'],
         ])
-
-
         if len(tf_documents):
-            self.sess.run(self.sink, feed_dict={self.sink_documents: self.tf_documents})
+            self.sess.run(self.sink, feed_dict={self.sink_documents: tf_documents})
